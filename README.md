@@ -68,3 +68,7 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+# NOTE
+
+This uses AWS DynamoDB for the data, so you'll either need to set up your own database or change how the item, job, and materia data is fetched to use this (or I guess if this is eventually deployed to a server).
