@@ -5,8 +5,8 @@ import * as AWS from 'aws-sdk';
 
 const configuration = {
     region: "us-west-2",
-    secretAccessKey: "fgcWpnewBlLNRp+e18ZgoPfjWQ4rZdbN8PNoGjoY",
-    accessKeyId: "AKIAUNIJCUO76TGRMIZ3"
+    secretAccessKey: "key_here",
+    accessKeyId: "key_here"
 };
 
 AWS.config.update(configuration);
