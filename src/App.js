@@ -2,12 +2,7 @@ import 'bootstrap/dist/css/bootstrap.css';
 import 'bootstrap-icons/font/bootstrap-icons.css'
 import React, { useEffect, useState } from 'react';
 import * as AWS from 'aws-sdk';
-
-const configuration = {
-    region: "us-west-2",
-    secretAccessKey: "key_here",
-    accessKeyId: "key_here"
-};
+import configuration from './aws_config.js';
 
 AWS.config.update(configuration);
 const docClient = new AWS.DynamoDB.DocumentClient();
