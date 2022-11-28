@@ -3,6 +3,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 import React, { useEffect, useState } from 'react';
 import * as AWS from 'aws-sdk';
 import configuration from './aws_config.js';
+import { allocateDiscipleOfHandMateria, determineDiscipleOfHandTotalStats } from './MateriaCalculator.js';
 
 AWS.config.update(configuration);
 const docClient = new AWS.DynamoDB.DocumentClient();
@@ -19,8 +20,7 @@ const defaultGear = {
     Necklace: { name: "" },
     Bracelets: { name: "" },
     LeftRing: { name: "" },
-    RightRing: { name: "" },
-    Food: { name: "" }
+    RightRing: { name: "" }
 };
 
 const defaultAutomationConfiguration = {
@@ -120,7 +120,7 @@ function App() {
                         <div className="card text-bg-dark m-5">
                             <h5 className="card-header text-bg-primary">Automations</h5>
                             <div className="card-body">
-                                <CrafterAutomations automationConfig={automationConfig} setAutomationConfig={setAutomationConfig} />
+                                <CrafterAutomations automationConfig={automationConfig} setAutomationConfig={setAutomationConfig} selectedGear={selectedGear} setSelectedGear={setSelectedGear} selectedJob={selectedJob} hasSoulCrystal={hasSoulCrystal} materiaList={materia} />
                             </div>
                         </div>
                         <div className="card text-bg-dark m-5">
@@ -148,7 +148,7 @@ function GearSelect({ gearList, materia, equippedGear, setEquippedGear, selected
         let modifiedEquippedGear = JSON.parse(JSON.stringify(equippedGear));
         let slotItem = modifiedEquippedGear[slot];
         if (!slotItem.materia) {
-            slotItem.materia = new Array(5);
+            slotItem.materia = new Array(slotItem.materiaSlots);
         }
         slotItem.materia[materiaIndex] = item;
         setEquippedGear(modifiedEquippedGear);
@@ -210,19 +210,21 @@ function GearSlot({ slot, gearList, materia, equippedItem, selectedJob, selectGe
             }
         }
     }
-
-    let restrictedMateriaStartIndex = equippedItem.normalMeldSlots + 1;
+    
     let materiaSlots = [];
-    if (equippedItem && equippedItem.name) {
-        for (let i = 0; i < equippedItem.materiaSlots; i++) {
-            materiaSlots.push(
-                <MateriaSlot key={i}
-                    slotIndex={i + 1}
-                    materia={materia}
-                    selectedMateria={(equippedItem && equippedItem.materia) ? equippedItem.materia[i] : {}}
-                    setMateriaOnItem={setMateriaOnItem}
-                    restrictMateria={restrictedMateriaStartIndex < (i + 1)} />
-            )
+    if (equippedItem && equippedItem.normalMeldSlots) {
+        let restrictedMateriaStartIndex = equippedItem.normalMeldSlots + 1;
+        if (equippedItem && equippedItem.name) {
+            for (let i = 0; i < equippedItem.materiaSlots; i++) {
+                materiaSlots.push(
+                    <MateriaSlot key={i}
+                        slotIndex={i + 1}
+                        materia={materia}
+                        selectedMateria={(equippedItem && equippedItem.materia) ? equippedItem.materia[i] : {}}
+                        setMateriaOnItem={setMateriaOnItem}
+                        restrictMateria={restrictedMateriaStartIndex < (i + 1)} />
+                )
+            }
         }
     }
 
@@ -234,7 +236,7 @@ function GearSlot({ slot, gearList, materia, equippedItem, selectedJob, selectGe
                     <div className="row pt-2 pb-2">
                         <label className="col-md-2 col-form-label text-end">Item</label>
                         <div className="col-md-10">
-                            <select value={equippedItem.name} className="w-100 form-control" onChange={setSelectedItem}>
+                            <select value={equippedItem ? equippedItem.name : ""} className="w-100 form-control" onChange={setSelectedItem}>
                                 <option value="">Select an item</option>
                                 {slotOptions}
                             </select>
@@ -284,7 +286,7 @@ function MateriaSlot({ slotIndex, materia, selectedMateria, setMateriaOnItem, re
     )
 }
 
-function CrafterAutomations( { automationConfig, setAutomationConfig } ) {
+function CrafterAutomations( { automationConfig, setAutomationConfig, selectedGear, setSelectedGear, selectedJob, hasSoulCrystal, materiaList } ) {
     function setAutomationValue(value, stat, property) {
         let newAutomationConfig = JSON.parse(JSON.stringify(automationConfig));
         newAutomationConfig[stat][property] = value;
@@ -301,6 +303,11 @@ function CrafterAutomations( { automationConfig, setAutomationConfig } ) {
         let newAutomationConfig = JSON.parse(JSON.stringify(automationConfig));
         newAutomationConfig.overmeldRank = value;
         setAutomationConfig(newAutomationConfig);
+    }
+
+    function allocateMateria(e) {
+        const materiaInfusedGear = allocateDiscipleOfHandMateria(selectedGear, selectedJob, automationConfig, hasSoulCrystal, materiaList);
+        setSelectedGear(materiaInfusedGear);
     }
 
     return (
@@ -341,7 +348,7 @@ function CrafterAutomations( { automationConfig, setAutomationConfig } ) {
             </div>
             <div className="row pt-2">
                 <button className="btn btn-sm btn-primary col-sm-4 m-1">Clear Materia</button>
-                <button className="btn btn-sm btn-primary col-sm-4 m-1">Maximize Materia</button>
+                <button className="btn btn-sm btn-primary col-sm-4 m-1" onClick={allocateMateria}>Maximize Materia</button>
             </div>
         </div>
     )
@@ -366,37 +373,20 @@ function AutomationStat( { stat, automationConfig, setAutomationValue } ) {
 }
 
 function CrafterSummary({ equippedGear, selectedJob, hasSoulCrystal }) {
-    let control = selectedJob && selectedJob.baseStats ? selectedJob.baseStats.control : 0;
-    let craftsmanship = selectedJob && selectedJob.baseStats ? selectedJob.baseStats.craftsmanship : 0;
-    let cp = selectedJob && selectedJob.baseStats ? selectedJob.baseStats.cp : 0;
-    for (let slot of Object.keys(equippedGear)) {
-        let gear = equippedGear[slot];
-        if (gear && gear.name) {
-            control += gear.control.hq;
-            craftsmanship += gear.craftsmanship.hq;
-            cp += gear.cp.hq;
-        }
-    }
-    if (hasSoulCrystal) {
-        control += 20;
-        craftsmanship += 20;
-        cp += 15;
-    }
-
-
+    let calculatedStats = determineDiscipleOfHandTotalStats(equippedGear, selectedJob, hasSoulCrystal);
     return (
         <div>
             <div className="row">
                 <label className="col text-start">Control</label>
-                <div className="col text-start">{control}</div>
+                <div className="col text-start">{calculatedStats.control}</div>
             </div>
             <div className="row">
                 <label className="col text-start">Craftsmanship</label>
-                <div className="col text-start">{craftsmanship}</div>
+                <div className="col text-start">{calculatedStats.craftsmanship}</div>
             </div>
             <div className="row">
                 <label className="col text-start">CP</label>
-                <div className="col text-start">{cp}</div>
+                <div className="col text-start">{calculatedStats.cp}</div>
             </div>
         </div>
     );
