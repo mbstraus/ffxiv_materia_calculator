@@ -30,6 +30,9 @@ const defaultAutomationConfiguration = {
     control: { target: "3280", minimize: false, priority: 0 },
     craftsmanship: { target: "3700", minimize: false, priority: 1 },
     cp: { target: "564", minimize: true, priority: 2 },
+    perception: { target: "3700", minimize: false, priority: 0 },
+    gathering: { target: "3700", minimize: false, priority: 1 },
+    gp: { target: "886", minimize: true, priority: 2 },
     firstOvermeldRank: 10,
     overmeldRank: 9
 }
