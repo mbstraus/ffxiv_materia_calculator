@@ -3,7 +3,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 import React, { useEffect, useState } from 'react';
 import * as AWS from 'aws-sdk';
 import configuration from './aws_config.js';
-import { allocateDiscipleOfHandMateria, determineDiscipleOfHandTotalStats } from './MateriaCalculator.js';
+import { allocateMateria, determineTotalStats } from './MateriaCalculator.js';
 import MateriaSlot from './components/MateriaSlot.js';
 import AutomationStat from './components/AutomationStat.js';
 import CharacterInfo from './components/CharacterInfo.js';
@@ -196,8 +196,8 @@ function GearSlot({ slot, gearList, materia, equippedItem, selectedJob, selectGe
         setEquippedGearMateria(selectedMateria, materiaIndex, slot);
     }
 
-    let calculatedStats = { control: 0, craftsmanship: 0, cp: 0 };
-    let statMaximums = { control: 0, craftsmanship: 0, cp: 0 };
+    let calculatedStats = {};
+    let statMaximums = {};
     let statDisplay = [];
     if (equippedItem && equippedItem.name) {
         Object.keys(equippedItem.stats).forEach((value, index) => {
@@ -279,16 +279,22 @@ function CrafterAutomations( { automationConfig, setAutomationConfig, selectedGe
         setAutomationConfig(newAutomationConfig);
     }
 
-    function allocateMateria(e) {
-        const materiaInfusedGear = allocateDiscipleOfHandMateria(selectedGear, selectedJob, automationConfig, hasSoulCrystal, materiaList);
+    function allocateMateriaOnClick(e) {
+        const materiaInfusedGear = allocateMateria(selectedGear, selectedJob, automationConfig, hasSoulCrystal, materiaList);
         setSelectedGear(materiaInfusedGear);
+    }
+    let automationStats = new Array((selectedJob && selectedJob.baseStats) ? Object.keys(selectedJob.baseStats).length : 0);
+    if (selectedJob && selectedJob.baseStats) {
+        Object.keys(selectedJob.baseStats).forEach((value, index) => {
+            automationStats[automationConfig[value].priority] = (
+                <AutomationStat key={"automation_stat_" + value} stat={value} automationConfig={automationConfig[value]} setAutomationValue={setAutomationValue} />
+            );
+        });
     }
 
     return (
         <div>
-            <AutomationStat stat="control" automationConfig={automationConfig.control} setAutomationValue={setAutomationValue} />
-            <AutomationStat stat="craftsmanship" automationConfig={automationConfig.craftsmanship} setAutomationValue={setAutomationValue} />
-            <AutomationStat stat="cp" automationConfig={automationConfig.cp} setAutomationValue={setAutomationValue} />
+            {automationStats}
             <div className="row pt-2">
                 <label htmlFor="firstOvermeldMateriaRank" className="text-start col-sm-3 col-form-label">First Overmeld Rank</label>
                 <div className="col-sm-3">
@@ -322,14 +328,14 @@ function CrafterAutomations( { automationConfig, setAutomationConfig, selectedGe
             </div>
             <div className="row pt-2">
                 <button className="btn btn-sm btn-primary col-sm-4 m-1">Clear Materia</button>
-                <button className="btn btn-sm btn-primary col-sm-4 m-1" onClick={allocateMateria}>Maximize Materia</button>
+                <button className="btn btn-sm btn-primary col-sm-4 m-1" onClick={allocateMateriaOnClick}>Maximize Materia</button>
             </div>
         </div>
     )
 }
 
 function CrafterSummary({ equippedGear, selectedJob, hasSoulCrystal }) {
-    let calculatedStats = determineDiscipleOfHandTotalStats(equippedGear, selectedJob, hasSoulCrystal);
+    let calculatedStats = determineTotalStats(equippedGear, selectedJob, hasSoulCrystal);
     return (
         <div>
             <div className="row">

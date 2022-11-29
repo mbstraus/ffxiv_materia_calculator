@@ -1,18 +1,18 @@
 const slotPriority = [ "Head", "Body", "Hands", "Legs", "Feet", "Earrings", "Necklace", "Bracelets", "LeftRing", "RightRing", "Primary", "Secondary" ]
 
-function allocateDiscipleOfHandMateria(selectedGear, selectedJob, automationConfig, hasSoulCrystal, materiaList) {
+function allocateMateria(selectedGear, selectedJob, automationConfig, hasSoulCrystal, materiaList) {
     let materiaInfusedGear = JSON.parse(JSON.stringify(selectedGear));
 
-    let calculatedStats = determineDiscipleOfHandTotalStats(materiaInfusedGear, selectedJob, hasSoulCrystal, true);
+    let calculatedStats = determineTotalStats(materiaInfusedGear, selectedJob, hasSoulCrystal, true);
 
     // First, assign the highest value materia that will fit within the meld max for all of the normal meld slots
     for (let gearSlot of slotPriority) {
         let gearItem = materiaInfusedGear[gearSlot];
         for (let i = 0; i < gearItem.normalMeldSlots; i++) {
-            let materiaForSlot = determineDiscipleOfHandMateria(gearItem, 10, automationConfig, calculatedStats, materiaList, false);
+            let materiaForSlot = determineMateria(gearItem, 10, automationConfig, calculatedStats, materiaList, false);
             if (materiaForSlot) {
                 gearItem.materia[i] = materiaForSlot;
-                calculatedStats = determineDiscipleOfHandTotalStats(materiaInfusedGear, selectedJob, hasSoulCrystal, false);
+                calculatedStats = determineTotalStats(materiaInfusedGear, selectedJob, hasSoulCrystal, false);
             }
         }
     }
@@ -20,10 +20,10 @@ function allocateDiscipleOfHandMateria(selectedGear, selectedJob, automationConf
     // Starting with the armor, go through the first overmeld slot and fill that in with the highest allowed materia
     for (let gearSlot of slotPriority) {
         let gearItem = materiaInfusedGear[gearSlot];
-        let materiaForSlot = determineDiscipleOfHandMateria(gearItem, automationConfig.firstOvermeldRank, automationConfig, calculatedStats, materiaList, false);
+        let materiaForSlot = determineMateria(gearItem, automationConfig.firstOvermeldRank, automationConfig, calculatedStats, materiaList, false);
         if (materiaForSlot) {
             gearItem.materia[gearItem.normalMeldSlots] = materiaForSlot; // array is zero based, meld slots value is 1 based
-            calculatedStats = determineDiscipleOfHandTotalStats(materiaInfusedGear, selectedJob, hasSoulCrystal, false);
+            calculatedStats = determineTotalStats(materiaInfusedGear, selectedJob, hasSoulCrystal, false);
         }
     }
 
@@ -31,10 +31,10 @@ function allocateDiscipleOfHandMateria(selectedGear, selectedJob, automationConf
     for (let gearSlot of slotPriority) {
         let gearItem = materiaInfusedGear[gearSlot];
         for (let i = gearItem.normalMeldSlots + 1; i < gearItem.materiaSlots; i++) {
-            let materiaForSlot = determineDiscipleOfHandMateria(gearItem, automationConfig.overmeldRank, automationConfig, calculatedStats, materiaList, true);
+            let materiaForSlot = determineMateria(gearItem, automationConfig.overmeldRank, automationConfig, calculatedStats, materiaList, true);
             if (materiaForSlot) {
                 gearItem.materia[i] = materiaForSlot;
-                calculatedStats = determineDiscipleOfHandTotalStats(materiaInfusedGear, selectedJob, hasSoulCrystal, false);
+                calculatedStats = determineTotalStats(materiaInfusedGear, selectedJob, hasSoulCrystal, false);
             }
         }
     }
@@ -45,25 +45,27 @@ function allocateDiscipleOfHandMateria(selectedGear, selectedJob, automationConf
     return materiaInfusedGear;
 }
 
-function determineDiscipleOfHandTotalStats(materiaInfusedGear, selectedJob, hasSoulCrystal, resetMateria) {
-    let calculatedStats = {
-        control: selectedJob && selectedJob.baseStats ? selectedJob.baseStats.control : 0,
-        craftsmanship: selectedJob && selectedJob.baseStats ? selectedJob.baseStats.craftsmanship : 0,
-        cp: selectedJob && selectedJob.baseStats ? selectedJob.baseStats.cp : 0
-    };
-    for (let slot of Object.keys(materiaInfusedGear)) {
-        let gear = materiaInfusedGear[slot];
+function determineTotalStats(materiaInfusedGear, selectedJob, hasSoulCrystal, resetMateria) {
+    let calculatedStats = {};
+    if (selectedJob && selectedJob.baseStats) {
+        Object.keys(selectedJob.baseStats).forEach((value, index) => {
+            calculatedStats[value] = selectedJob.baseStats[value];
+        });
+    }
+    Object.keys(materiaInfusedGear).forEach((value, index) => {
+        let gear = materiaInfusedGear[value];
+        if (!gear || !gear.name) {
+            return;
+        }
         if (resetMateria) {
             gear.materia = new Array(gear.materiaSlots);
         }
-        if (!gear || !gear.name) {
-            continue;
-        }
-        let stats = determineDiscipleOfHandGearStatValue(gear);
-        calculatedStats.control += stats.control;
-        calculatedStats.craftsmanship += stats.craftsmanship;
-        calculatedStats.cp += stats.cp; 
-    }
+        let stats = determineGearStatValue(gear);
+        Object.keys(stats).forEach((statValue, statIndex) => {
+            calculatedStats[statValue] += stats[statValue];
+
+        });
+    });
     if (hasSoulCrystal) {
         calculatedStats.control += 20;
         calculatedStats.craftsmanship += 20;
@@ -72,11 +74,11 @@ function determineDiscipleOfHandTotalStats(materiaInfusedGear, selectedJob, hasS
     return calculatedStats;
 }
 
-function determineDiscipleOfHandGearStatValue(slotItem) {
-    let stats = { control: 0, craftsmanship: 0, cp: 0 };
-    stats.control += slotItem.stats.control.value;
-    stats.craftsmanship += slotItem.stats.craftsmanship.value;
-    stats.cp = slotItem.stats.cp.value;
+function determineGearStatValue(slotItem) {
+    let stats = {};
+    Object.keys(slotItem.stats).forEach((value, index) => {
+        stats[value] = slotItem.stats[value].value;
+    });
     if (slotItem.materia) {
         for (let materia of slotItem.materia) {
             if (materia && materia.value) {
@@ -87,46 +89,33 @@ function determineDiscipleOfHandGearStatValue(slotItem) {
     return stats;
 }
 
-function determineDiscipleOfHandMateria(gearItem, maxMateriaRank, automationConfig, calculatedStats, materiaList, allowOvercap) {
-    let isMinimizing = (automationConfig.control.target <= calculatedStats.control)
-        || (automationConfig.craftsmanship.target <= calculatedStats.craftsmanship)
-        || (automationConfig.cp.target <= calculatedStats.cp);
-    let currentSlotStats = determineDiscipleOfHandGearStatValue(gearItem);
-    if (isMinimizing && currentSlotStats.control < gearItem.stats.control.meldMax && calculatedStats.control < automationConfig.control.target) {
-        let materia = getMateriaForStatAndRank("control", maxMateriaRank, materiaList);
-        if (materia.value + currentSlotStats.control <= gearItem.stats.control.meldMax || allowOvercap) {
-            return materia;
+function determineMateria(gearItem, maxMateriaRank, automationConfig, calculatedStats, materiaList, allowOvercap) {
+    let gearItemStats = new Array((gearItem && gearItem.stats) ? Object.keys(gearItem.stats).length : 0);
+    let isMinimizing = false;
+    let currentSlotStats = determineGearStatValue(gearItem);
+    if (gearItem && gearItem.stats) {
+        Object.keys(gearItem.stats).forEach((value, index) => {
+            gearItemStats[automationConfig[value].priority] = value;
+            isMinimizing |= automationConfig[value].target <= calculatedStats[value];
+        });
+    }
+
+    if (isMinimizing) {
+        for (let stat of gearItemStats) {
+            if (currentSlotStats[stat] < gearItem.stats[stat].meldMax && calculatedStats[stat] < automationConfig[stat].target) {
+                let materia = getMateriaForStatAndRank(stat, maxMateriaRank, materiaList);
+                if (materia.value + currentSlotStats[stat] <= gearItem.stats[stat].meldMax || allowOvercap) {
+                    return materia;
+                }
+            }
         }
     }
-    if (isMinimizing && currentSlotStats.craftsmanship < gearItem.stats.craftsmanship.meldMax && calculatedStats.craftsmanship < automationConfig.craftsmanship.target) {
-        let materia = getMateriaForStatAndRank("craftsmanship", maxMateriaRank, materiaList);
-        if (materia.value + currentSlotStats.craftsmanship <= gearItem.stats.craftsmanship.meldMax || allowOvercap) {
-            return materia;
-        }
-    }
-    if (isMinimizing && currentSlotStats.cp < gearItem.stats.cp.meldMax && calculatedStats.cp < automationConfig.cp.target) {
-        let materia = getMateriaForStatAndRank("cp", maxMateriaRank, materiaList);
-        if (materia.value + currentSlotStats.cp <= gearItem.stats.cp.meldMax || allowOvercap) {
-            return materia;
-        }
-    }
-    
-    if (!automationConfig.control.minimize && currentSlotStats.control < gearItem.stats.control.meldMax) {
-        let materia = getMateriaForStatAndRank("control", maxMateriaRank, materiaList);
-        if (materia.value + currentSlotStats.control <= gearItem.stats.control.meldMax || allowOvercap) {
-            return materia;
-        }
-    }
-    if (!automationConfig.craftsmanship.minimize && currentSlotStats.craftsmanship < gearItem.stats.craftsmanship.meldMax) {
-        let materia = getMateriaForStatAndRank("craftsmanship", maxMateriaRank, materiaList);
-        if (materia.value + currentSlotStats.craftsmanship <= gearItem.stats.craftsmanship.meldMax || allowOvercap) {
-            return materia;
-        }
-    }
-    if (!automationConfig.cp.minimize && currentSlotStats.cp < gearItem.stats.cp.meldMax) {
-        let materia = getMateriaForStatAndRank("cp", maxMateriaRank, materiaList);
-        if (materia.value + currentSlotStats.cp <= gearItem.stats.cp.meldMax || allowOvercap) {
-            return materia;
+    for (let stat of gearItemStats) {
+        if (!automationConfig[stat].minimize && currentSlotStats[stat] < gearItem.stats[stat].meldMax) {
+            let materia = getMateriaForStatAndRank(stat, maxMateriaRank, materiaList);
+            if (materia.value + currentSlotStats[stat] <= gearItem.stats[stat].meldMax || allowOvercap) {
+                return materia;
+            }
         }
     }
     return null;
@@ -141,4 +130,4 @@ function getMateriaForStatAndRank(stat, rank, materiaList) {
     return {};
 }
 
-export { allocateDiscipleOfHandMateria, determineDiscipleOfHandTotalStats };
+export { allocateMateria, determineTotalStats };
