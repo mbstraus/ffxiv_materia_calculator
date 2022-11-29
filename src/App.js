@@ -198,20 +198,25 @@ function GearSlot({ slot, gearList, materia, equippedItem, selectedJob, selectGe
 
     let calculatedStats = { control: 0, craftsmanship: 0, cp: 0 };
     let statMaximums = { control: 0, craftsmanship: 0, cp: 0 };
+    let statDisplay = [];
     if (equippedItem && equippedItem.name) {
-        statMaximums.control = equippedItem.stats.control.meldMax;
-        statMaximums.craftsmanship = equippedItem.stats.craftsmanship.meldMax;
-        statMaximums.cp = equippedItem.stats.cp.meldMax;
-        calculatedStats.control = equippedItem.stats.control.value;
-        calculatedStats.craftsmanship = equippedItem.stats.craftsmanship.value;
-        calculatedStats.cp = equippedItem.stats.cp.value;
-        if (equippedItem.materia) {
-            for (let m of equippedItem.materia) {
-                if (m && m.value) {
-                    calculatedStats[m.stat] = Math.min(statMaximums[m.stat], calculatedStats[m.stat] + m.value);
+        Object.keys(equippedItem.stats).forEach((value, index) => {
+            statMaximums[value] = equippedItem.stats[value].meldMax;
+            calculatedStats[value] = equippedItem.stats[value].value;
+            if (equippedItem.materia) {
+                for (let m of equippedItem.materia) {
+                    if (m && m.value && m.stat === value) {
+                        calculatedStats[value] = Math.min(statMaximums[value], calculatedStats[value] + m.value);
+                    }
                 }
             }
-        }
+            statDisplay.push(
+                <div className="row" key={value}>
+                    <label className="col text-start">{value}</label>
+                    <div className="col text-end">{calculatedStats[value]} / {statMaximums[value]}</div>
+                </div>
+            );
+        });
     }
     
     let materiaSlots = [];
@@ -249,18 +254,7 @@ function GearSlot({ slot, gearList, materia, equippedItem, selectedJob, selectGe
                 </div>
             </div>
             <div className="col-md-3">
-                <div className="row">
-                    <label className="col text-start">Control</label>
-                    <div className="col text-end">{calculatedStats.control} / {statMaximums.control}</div>
-                </div>
-                <div className="row">
-                    <label className="col text-start">Craftsmanship</label>
-                    <div className="col text-end">{calculatedStats.craftsmanship} / {statMaximums.craftsmanship}</div>
-                </div>
-                <div className="row">
-                    <label className="col text-start">CP</label>
-                    <div className="col text-end">{calculatedStats.cp} / {statMaximums.cp}</div>
-                </div>
+                {statDisplay}
             </div>
         </div>
     );
