@@ -4,6 +4,9 @@ import React, { useEffect, useState } from 'react';
 import * as AWS from 'aws-sdk';
 import configuration from './aws_config.js';
 import { allocateDiscipleOfHandMateria, determineDiscipleOfHandTotalStats } from './MateriaCalculator.js';
+import MateriaSlot from './components/MateriaSlot.js';
+import AutomationStat from './components/AutomationStat.js';
+import CharacterInfo from './components/CharacterInfo.js';
 
 AWS.config.update(configuration);
 const docClient = new AWS.DynamoDB.DocumentClient();
@@ -25,7 +28,7 @@ const defaultGear = {
 
 const defaultAutomationConfiguration = {
     control: { target: "3280", minimize: false, priority: 0 },
-    craftsmanship: { target: "3700", minimize: true, priority: 1 },
+    craftsmanship: { target: "3700", minimize: false, priority: 1 },
     cp: { target: "564", minimize: true, priority: 2 },
     firstOvermeldRank: 10,
     overmeldRank: 9
@@ -196,12 +199,12 @@ function GearSlot({ slot, gearList, materia, equippedItem, selectedJob, selectGe
     let calculatedStats = { control: 0, craftsmanship: 0, cp: 0 };
     let statMaximums = { control: 0, craftsmanship: 0, cp: 0 };
     if (equippedItem && equippedItem.name) {
-        statMaximums.control = equippedItem.control.meldMax;
-        statMaximums.craftsmanship = equippedItem.craftsmanship.meldMax;
-        statMaximums.cp = equippedItem.cp.meldMax;
-        calculatedStats.control = equippedItem.control.hq;
-        calculatedStats.craftsmanship = equippedItem.craftsmanship.hq;
-        calculatedStats.cp = equippedItem.cp.hq;
+        statMaximums.control = equippedItem.stats.control.meldMax;
+        statMaximums.craftsmanship = equippedItem.stats.craftsmanship.meldMax;
+        statMaximums.cp = equippedItem.stats.cp.meldMax;
+        calculatedStats.control = equippedItem.stats.control.value;
+        calculatedStats.craftsmanship = equippedItem.stats.craftsmanship.value;
+        calculatedStats.cp = equippedItem.stats.cp.value;
         if (equippedItem.materia) {
             for (let m of equippedItem.materia) {
                 if (m && m.value) {
@@ -261,29 +264,6 @@ function GearSlot({ slot, gearList, materia, equippedItem, selectedJob, selectGe
             </div>
         </div>
     );
-}
-
-function MateriaSlot({ slotIndex, materia, selectedMateria, setMateriaOnItem, restrictMateria }) {
-    let materiaList = materia.map((item, index) => {
-        if (restrictMateria && item.restricted) {
-            return "";
-        }
-        return <option key={item.name} value={item.name}>{item.name} ({item.stat} + {item.value})</option>
-    });
-    return (
-        <div className="row pb-2">
-            <label className="col-sm-2 col-form-label text-end">Materia {slotIndex}</label>
-            <div className="col-sm-6">
-                <select className="form-control" onChange={(e) => setMateriaOnItem(e, slotIndex - 1)} value={selectedMateria ? selectedMateria.name : ""}>
-                    <option>No materia selected</option>
-                    {materiaList}
-                </select>
-            </div>
-            <div className="col-sm-4 text-start">
-                {(selectedMateria && selectedMateria.name) ? selectedMateria.stat + " + " + selectedMateria.value : "N/A"}
-            </div>
-        </div>
-    )
 }
 
 function CrafterAutomations( { automationConfig, setAutomationConfig, selectedGear, setSelectedGear, selectedJob, hasSoulCrystal, materiaList } ) {
@@ -354,24 +334,6 @@ function CrafterAutomations( { automationConfig, setAutomationConfig, selectedGe
     )
 }
 
-function AutomationStat( { stat, automationConfig, setAutomationValue } ) {
-    return (
-        <div className="row pt-2">
-            <div className="col-sm-1">
-                <i className="bi bi-chevron-expand"></i>
-            </div>
-            <label htmlFor={"target_" + stat} className="text-start col-sm-2 col-form-label">{stat}</label>
-            <div className="col-sm-3">
-                <input id={"target_" + stat} type="number" className="form-control" value={automationConfig.target} onChange={(e) => setAutomationValue(e.target.value, stat, "target")} />
-            </div>
-            <label htmlFor={"minimize_" + stat} className="text-start col-sm-2">Minimize?</label>
-            <div className="col-sm-1">
-                <input id={"minimize_" + stat} className="form-check-input" type="checkbox" checked={automationConfig.minimize} onChange={(e) => setAutomationValue(e.target.checked, stat, "minimize")}></input>
-            </div>
-        </div>
-    )
-}
-
 function CrafterSummary({ equippedGear, selectedJob, hasSoulCrystal }) {
     let calculatedStats = determineDiscipleOfHandTotalStats(equippedGear, selectedJob, hasSoulCrystal);
     return (
@@ -388,52 +350,6 @@ function CrafterSummary({ equippedGear, selectedJob, hasSoulCrystal }) {
                 <label className="col text-start">CP</label>
                 <div className="col text-start">{calculatedStats.cp}</div>
             </div>
-        </div>
-    );
-}
-
-function CharacterInfo({ jobs, selectedJob, setSelectedJob, selectPatchItems, hasSoulCrystal, setHasSoulCrystal }) {
-
-    const jobOptions = jobs.map((item, index) => {
-        return <option value={item.code} key={item.code}>{item.name} ({item.code})</option>
-    });
-
-    function selectJob(e) {
-        let job = jobs.find((entry) => entry.code === e.target.value);
-        setSelectedJob(job);
-    }
-
-    return (
-        <div>
-            <div className="row">
-                <label htmlFor="characterJob" className="text-start col-sm-2">Job</label>
-                <div className="col-sm-4">
-                    <select id="characterJob" className="form-select" value={selectedJob.code} onChange={selectJob}>
-                        <option>Select a job</option>
-                        {jobOptions}
-                    </select>
-                </div>
-            </div>
-            {selectedJob.name && (
-                <div className="row">
-                    <label htmlFor="patch" className="text-start col-sm-2">Patch</label>
-                    <div className="col-sm-4">
-                        <select id="patch" className="form-select" onChange={selectPatchItems}>
-                            <option>Select a patch</option>
-                            <option>6.0</option>
-                            <option>6.3</option>
-                        </select>
-                    </div>
-                </div>
-            )}
-            {selectedJob.category === "DoH" && (
-                <div className="row">
-                    <label htmlFor="soulCrystal" className="col text-start col-sm-2">Has Soul Crystal</label>
-                    <div className="col-sm-4">
-                        <input id="soulCrystal" className="form-check-input" type="checkbox" checked={hasSoulCrystal} onChange={(e) => setHasSoulCrystal(e.target.checked)}></input>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

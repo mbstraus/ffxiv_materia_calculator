@@ -74,13 +74,13 @@ function determineDiscipleOfHandTotalStats(materiaInfusedGear, selectedJob, hasS
 
 function determineDiscipleOfHandGearStatValue(slotItem) {
     let stats = { control: 0, craftsmanship: 0, cp: 0 };
-    stats.control += slotItem.control.hq;
-    stats.craftsmanship += slotItem.craftsmanship.hq;
-    stats.cp = slotItem.cp.hq;
+    stats.control += slotItem.stats.control.value;
+    stats.craftsmanship += slotItem.stats.craftsmanship.value;
+    stats.cp = slotItem.stats.cp.value;
     if (slotItem.materia) {
         for (let materia of slotItem.materia) {
             if (materia && materia.value) {
-                stats[materia.stat] = Math.min(slotItem[materia.stat].meldMax, stats[materia.stat] + materia.value);
+                stats[materia.stat] = Math.min(slotItem.stats[materia.stat].meldMax, stats[materia.stat] + materia.value);
             }
         }
     }
@@ -92,40 +92,40 @@ function determineDiscipleOfHandMateria(gearItem, maxMateriaRank, automationConf
         || (automationConfig.craftsmanship.target <= calculatedStats.craftsmanship)
         || (automationConfig.cp.target <= calculatedStats.cp);
     let currentSlotStats = determineDiscipleOfHandGearStatValue(gearItem);
-    if (isMinimizing && currentSlotStats.control < gearItem.control.meldMax && calculatedStats.control < automationConfig.control.target) {
+    if (isMinimizing && currentSlotStats.control < gearItem.stats.control.meldMax && calculatedStats.control < automationConfig.control.target) {
         let materia = getMateriaForStatAndRank("control", maxMateriaRank, materiaList);
-        if (materia.value + currentSlotStats.control <= gearItem.control.meldMax || allowOvercap) {
+        if (materia.value + currentSlotStats.control <= gearItem.stats.control.meldMax || allowOvercap) {
             return materia;
         }
     }
-    if (isMinimizing && currentSlotStats.craftsmanship < gearItem.craftsmanship.meldMax && calculatedStats.craftsmanship < automationConfig.craftsmanship.target) {
+    if (isMinimizing && currentSlotStats.craftsmanship < gearItem.stats.craftsmanship.meldMax && calculatedStats.craftsmanship < automationConfig.craftsmanship.target) {
         let materia = getMateriaForStatAndRank("craftsmanship", maxMateriaRank, materiaList);
-        if (materia.value + currentSlotStats.craftsmanship <= gearItem.craftsmanship.meldMax || allowOvercap) {
+        if (materia.value + currentSlotStats.craftsmanship <= gearItem.stats.craftsmanship.meldMax || allowOvercap) {
             return materia;
         }
     }
-    if (isMinimizing && currentSlotStats.cp < gearItem.cp.meldMax && calculatedStats.cp < automationConfig.cp.target) {
+    if (isMinimizing && currentSlotStats.cp < gearItem.stats.cp.meldMax && calculatedStats.cp < automationConfig.cp.target) {
         let materia = getMateriaForStatAndRank("cp", maxMateriaRank, materiaList);
-        if (materia.value + currentSlotStats.cp <= gearItem.cp.meldMax || allowOvercap) {
+        if (materia.value + currentSlotStats.cp <= gearItem.stats.cp.meldMax || allowOvercap) {
             return materia;
         }
     }
     
-    if (!automationConfig.control.minimize && currentSlotStats.control < gearItem.control.meldMax) {
+    if (!automationConfig.control.minimize && currentSlotStats.control < gearItem.stats.control.meldMax) {
         let materia = getMateriaForStatAndRank("control", maxMateriaRank, materiaList);
-        if (materia.value + currentSlotStats.control <= gearItem.control.meldMax || allowOvercap) {
+        if (materia.value + currentSlotStats.control <= gearItem.stats.control.meldMax || allowOvercap) {
             return materia;
         }
     }
-    if (!automationConfig.craftsmanship.minimize && currentSlotStats.craftsmanship < gearItem.craftsmanship.meldMax) {
+    if (!automationConfig.craftsmanship.minimize && currentSlotStats.craftsmanship < gearItem.stats.craftsmanship.meldMax) {
         let materia = getMateriaForStatAndRank("craftsmanship", maxMateriaRank, materiaList);
-        if (materia.value + currentSlotStats.craftsmanship <= gearItem.craftsmanship.meldMax || allowOvercap) {
+        if (materia.value + currentSlotStats.craftsmanship <= gearItem.stats.craftsmanship.meldMax || allowOvercap) {
             return materia;
         }
     }
-    if (!automationConfig.cp.minimize && currentSlotStats.cp < gearItem.cp.meldMax) {
+    if (!automationConfig.cp.minimize && currentSlotStats.cp < gearItem.stats.cp.meldMax) {
         let materia = getMateriaForStatAndRank("cp", maxMateriaRank, materiaList);
-        if (materia.value + currentSlotStats.cp <= gearItem.cp.meldMax || allowOvercap) {
+        if (materia.value + currentSlotStats.cp <= gearItem.stats.cp.meldMax || allowOvercap) {
             return materia;
         }
     }
