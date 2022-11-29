@@ -336,20 +336,18 @@ function CrafterAutomations( { automationConfig, setAutomationConfig, selectedGe
 
 function CrafterSummary({ equippedGear, selectedJob, hasSoulCrystal }) {
     let calculatedStats = determineTotalStats(equippedGear, selectedJob, hasSoulCrystal);
+    let statsDisplay = [];
+    Object.keys(calculatedStats).forEach((value, index) => {
+        statsDisplay.push(
+            <div className="row">
+                <label className="col text-start">{value}</label>
+                <div className="col text-start">{calculatedStats[value]}</div>
+            </div>
+        );
+    })
     return (
         <div>
-            <div className="row">
-                <label className="col text-start">Control</label>
-                <div className="col text-start">{calculatedStats.control}</div>
-            </div>
-            <div className="row">
-                <label className="col text-start">Craftsmanship</label>
-                <div className="col text-start">{calculatedStats.craftsmanship}</div>
-            </div>
-            <div className="row">
-                <label className="col text-start">CP</label>
-                <div className="col text-start">{calculatedStats.cp}</div>
-            </div>
+            {statsDisplay}
         </div>
     );
 }
