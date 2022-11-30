@@ -19,8 +19,11 @@ function allocateMateria(selectedGear, selectedJob, automationConfig, hasSoulCry
 
     // Starting with the armor, go through the first overmeld slot and fill that in with the highest allowed materia
     for (let gearSlot of slotPriority) {
+        if (!automationConfig.overmeldWeapon && (gearSlot === "Primary" || gearSlot === "Secondary")) {
+            continue;
+        }
         let gearItem = materiaInfusedGear[gearSlot];
-        let materiaForSlot = determineMateria(gearItem, automationConfig.firstOvermeldRank, automationConfig, calculatedStats, materiaList, false);
+        let materiaForSlot = determineMateria(gearItem, new Number(automationConfig.firstOvermeldRank), automationConfig, calculatedStats, materiaList, false);
         if (materiaForSlot) {
             gearItem.materia[gearItem.normalMeldSlots] = materiaForSlot; // array is zero based, meld slots value is 1 based
             calculatedStats = determineTotalStats(materiaInfusedGear, selectedJob, hasSoulCrystal, false);
@@ -29,9 +32,12 @@ function allocateMateria(selectedGear, selectedJob, automationConfig, hasSoulCry
 
     // Finally, fill in the remainder of the overmeld slots
     for (let gearSlot of slotPriority) {
+        if (!automationConfig.overmeldWeapon && (gearSlot === "Primary" || gearSlot === "Secondary")) {
+            continue;
+        }
         let gearItem = materiaInfusedGear[gearSlot];
         for (let i = gearItem.normalMeldSlots + 1; i < gearItem.materiaSlots; i++) {
-            let materiaForSlot = determineMateria(gearItem, automationConfig.overmeldRank, automationConfig, calculatedStats, materiaList, true);
+            let materiaForSlot = determineMateria(gearItem, new Number(automationConfig.overmeldRank), automationConfig, calculatedStats, materiaList, true);
             if (materiaForSlot) {
                 gearItem.materia[i] = materiaForSlot;
                 calculatedStats = determineTotalStats(materiaInfusedGear, selectedJob, hasSoulCrystal, false);
@@ -123,7 +129,7 @@ function determineMateria(gearItem, maxMateriaRank, automationConfig, calculated
 
 function getMateriaForStatAndRank(stat, rank, materiaList) {
     for (let materia of materiaList) {
-        if (materia.stat === stat && materia.rank === rank) {
+        if (materia.stat === stat && materia.rank == rank) {
             return materia;
         }
     }
@@ -146,6 +152,12 @@ export default function Automations( { automationConfig, setAutomationConfig, se
     function setOvermeldRank(value) {
         let newAutomationConfig = JSON.parse(JSON.stringify(automationConfig));
         newAutomationConfig.overmeldRank = value;
+        setAutomationConfig(newAutomationConfig);
+    }
+
+    function setOvermeldWeapon(value) {
+        let newAutomationConfig = JSON.parse(JSON.stringify(automationConfig));
+        newAutomationConfig.overmeldWeapon = value;
         setAutomationConfig(newAutomationConfig);
     }
 
@@ -194,6 +206,12 @@ export default function Automations( { automationConfig, setAutomationConfig, se
                         <option value="7">7</option>
                         <option value="9">9</option>
                     </select>
+                </div>
+            </div>
+            <div className="row pt-2">
+                <label htmlFor="overmeldWeapon" className="text-start col-sm-3 col-form-label">Overmeld Weapons</label>
+                <div className="col-sm-3">
+                    <input id="overmeldWeapon" className="form-check-input" type="checkbox" checked={automationConfig.minimize} onChange={(e) => setOvermeldWeapon(e.target.checked)}></input>
                 </div>
             </div>
             <div className="row pt-2">

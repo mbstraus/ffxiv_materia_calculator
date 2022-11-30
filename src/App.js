@@ -34,7 +34,8 @@ const defaultAutomationConfiguration = {
     gathering: { target: "3700", minimize: false, priority: 1 },
     gp: { target: "886", minimize: true, priority: 2 },
     firstOvermeldRank: 10,
-    overmeldRank: 9
+    overmeldRank: 9,
+    overmeldWeapon: true
 }
 
 function GetSortOrder(prop) {
